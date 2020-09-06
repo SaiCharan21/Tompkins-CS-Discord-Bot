@@ -15,8 +15,8 @@ client.on("ready", () => {
     const members = guild.members;
 
     for (var j = 0; j < members.length; j++) {
-      notVerifiedRole = guild.roles.find("name", "NotVerifed");
-      message.member.addRole(notVerifiedRole);
+      notVerifedRole = message.guild.roles.cache.find(r => r.name === "NotVerifed");
+      message.member.roles.add(notVerifiedRole);
     }
   }
 });
@@ -49,10 +49,12 @@ client.on("message", async (message) => {
   const textContent = message.content;
   console.log(`Message Recieved: ${textContent}`);
 
+  //let role = message.guild.roles.find(r => r.name === "Verifed");
+
   if (textContent == "verify") {
-    console.log(message.guild.roles)
-    verifedRole = message.guild.roles.find("name", "Verifed");
-    message.member.addRole(verifedRole);
+    //console.log(message.guild.roles)
+    verifedRole = message.guild.roles.cache.find(r => r.name === "Verifed");
+    message.member.roles.add(verifedRole);
   }
 
   const command = textContent.split(" ")[0].split("?")[1];
