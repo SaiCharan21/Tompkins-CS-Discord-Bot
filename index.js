@@ -3,8 +3,11 @@ const config = require("./config.json");
 
 const client = new Discord.Client();
 
+const welcome = require('./welcome')
+
 client.on("ready", () => {
   console.log(`Bot has started.`);
+  welcome(client)
   client.user.setActivity(`Computer Science`);
 
   const guilds = client.guilds;
@@ -22,8 +25,8 @@ client.on("ready", () => {
 });
 
 client.on("guildMemberAdd", (member) => {
-  notVerifed = member.guild.roles.find("name", "NotVerifed");
-  member.addRole(notVerifed);
+  // notVerifed = member.guild.roles.find("name", "Not Verifed");
+  // member.addRole(notVerifed);
 
   member.send(
     "Welcome to the TompkinsCS club " +
@@ -84,6 +87,7 @@ const authorized = (user) => {
     "312736226375630849",
     "324257645408288779",
     "599078674892849175",
+    "613510923239555082"
   ];
   return authorized_users.includes(user);
 };
