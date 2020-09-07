@@ -5,7 +5,7 @@ const client = new Discord.Client();
 
 client.on("ready", () => {
   console.log(`Bot has started.`);
-  client.user.setActivity(`Serving ${client.guilds.size} servers`);
+  client.user.setActivity(`Computer Science`);
 
   const guilds = client.guilds;
 
