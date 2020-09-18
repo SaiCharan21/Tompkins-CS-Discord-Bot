@@ -1,26 +1,32 @@
 const Discord = require("discord.js");
 const config = require("./config.json");
+const mysql = require("mysql2/promise");
 
 const client = new Discord.Client();
 
-const welcome = require('./welcome')
-
 client.on("ready", () => {
   console.log(`Bot has started.`);
-  welcome(client)
   client.user.setActivity(`Computer Science`);
 
   const guilds = client.guilds;
+  console.log(guilds.length);
 
   for (var i = 0; i < guilds.length; i++) {
     const guild = guilds[i];
 
     const members = guild.members;
-
+    console.log(guild.name + "\n\n");
     for (var j = 0; j < members.length; j++) {
-      notVerifedRole = message.guild.roles.cache.find(r => r.name === "NotVerifed");
-      message.member.roles.add(notVerifiedRole);
-    }
+      member = members[j];
+      console.log(member.name);
+      notVerifedRole = member.guild.roles.cache.find(
+        (r) => r.name === "NotVerifed"
+      );
+      member.roles.add(notVerifiedRole);
+
+      verifedRole = member.guild.roles.cache.find((r) => r.name === "Verifed");
+      member.roles.remove(verifedRole.id);
+    } 
   }
 });
 
@@ -47,26 +53,32 @@ client.on("guildMemberAdd", (member) => {
 });
 
 client.on("message", async (message) => {
-  if (message.author.bot && message.channel.name != "verify") return;
+  if (
+    message.author.bot ||
+    message.content.charAt(0) != "?" ||
+    message.content.length < 1
+  )
+    return;
 
-  const textContent = message.content;
+  const textContent = message.content.toLowerCase().substring(1).split(" ");
   console.log(`Message Recieved: ${textContent}`);
 
   //let role = message.guild.roles.find(r => r.name === "Verifed");
 
   if (textContent == "verify") {
     //console.log(message.guild.roles)
-    verifedRole = message.guild.roles.cache.find(r => r.name === "Verifed");
+    verifedRole = message.guild.roles.cache.find((r) => r.name === "Verifed");
     message.member.roles.add(verifedRole);
   }
 
-  const command = textContent.split(" ")[0].split("?")[1];
-  if (command) {
-    console.log("COMMAND:" + command);
-    switch (command) {
+  //const command = textContent.split(" ")[0].split("?")[1];
+  if (textContent) {
+    console.log("COMMAND:" + textContent.toString());
+    switch (textContent[0]) {
       case "restart": {
         message.channel.send("Restarting...").then((m) => {
           client.destroy().then(() => {
+            nop;
             client.login("token");
           });
         });
@@ -78,6 +90,37 @@ client.on("message", async (message) => {
         });
         break;
       }
+      case "verify": {
+        if (textContent.length < 2 || textContent[1].length != 8) {
+          message.channel.send(
+            "The right format for this command is" +
+              "\n" +
+              "```" +
+              "\n" +
+              "?verify <STUDENT ID>" +
+              "\n" +
+              "```" +
+              "\n" +
+              "Make sure your id was typed correctly"
+          );
+          break;
+        }
+
+        const ismember = await isMember(textContent[1]);
+        console.log("done")
+        message.channel.send(
+          "User " + textContent[1] + " is member is:" + ismember
+        );
+
+        if (ismember) {
+          VerifedRole = message.guild.roles.cache.find(
+            (r) => r.name === "Verifed"
+          );
+          message.member.roles.add(VerifedRole);
+        }
+
+        break;
+      }
     }
   }
 });
@@ -87,7 +130,7 @@ const authorized = (user) => {
     "312736226375630849",
     "324257645408288779",
     "599078674892849175",
-    "613510923239555082"
+    "613510923239555082",
   ];
   return authorized_users.includes(user);
 };
@@ -104,3 +147,26 @@ const deleteMember = (message) => {};
 const updateMembers = (guild) => {};
 
 client.login(config.token);
+
+//DB Functions
+const isMember = async (id) => {
+  const connection = await mysql.createConnection({
+    host: "localhost",
+    user: "root",
+    password: "",
+    database: "tompkinscs",
+  });
+
+  returnVal = undefined;
+
+  await connection.query(
+    "SELECT * FROM members WHERE student_id = ?",
+    [id.toUpperCase()],
+    async (err, res, field) => {
+      if (err) throw err;
+      returnVal = (res[0] && res[0].student_id)
+      console.log(returnVal)
+      return returnVal
+    }
+  );
+};
