@@ -19,4 +19,19 @@ const checkForMember =  (id, cb) => {
     );
 };
 
-module.exports = { checkForMember }
+const checkByName = (nickname, cb) => {
+    connection.query(
+        "SELECT * FROM members WHERE name = ?",
+        [nickname],
+        async (err, res, field) => {
+            if (err) throw err;
+            exists = (res[0] && res[0].name)
+            if(exists)
+                cb(exists, res[0].name || "")
+            else
+                cb(exists)
+        }
+    );
+}
+
+module.exports = { checkForMember, checkByName }

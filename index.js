@@ -4,29 +4,54 @@ const db = require('./db');
 
 const client = new Discord.Client();
 
+const checkGuildsVerifed = () => {
+    client.guilds.cache.forEach(guild => {
+        // console.log(guild.name + "\n");
+        guild.members.cache.forEach(member => {
+            // console.log(member.nickname || );
+            db.checkByName(member.nickname, (isMember, memberName) => {
+                if (isMember) {
+                    verify(member, memberName);
+                } else {
+                    unverify(member);
+                }
+            })
+        })
+    });
+}
+
+const verify = (user, memberName, channel) => {
+    console.log("User " + memberName + " verified! Adding roles & changing nickname...")
+    VerifiedRole = user.guild.roles.cache.find(
+        (r) => r.name === "Verified"
+    );
+    user.roles.add(VerifiedRole);
+    user.setNickname(memberName);
+    if (channel)
+        channel.send(memberName + " has been verified!");
+};
+
+const unverify = (user, channel) => {
+    console.log("User unverified! Setting roles...")
+
+    VerifiedRole = user.guild.roles.cache.find(
+        (r) => r.name === "Verified"
+    );
+    UnverifiedRole = user.guild.roles.cache.find(
+        (r) => r.name === "NotVerified"
+    );
+    user.roles.remove(VerifiedRole);
+    user.roles.add(UnverifiedRole);
+
+    if (channel)
+        channel.send("Unverified " + user.user.name);
+}
+
 client.on("ready", () => {
     console.log(`Bot has started....`);
     client.user.setActivity(`Computer Science`);
 
-    const guilds = client.guilds;
-    // console.log(guilds.length);
-
-    for (var i = 0; i < guilds.length; i++) {
-        const guild = guilds[i];
-        const members = guild.members;
-        console.log(guild.name + "\n\n");
-        for (var j = 0; j < members.length; j++) {
-            member = members[j];
-            console.log(member.name);
-            notVerifiedRole = member.guild.roles.cache.find(
-                (r) => r.name === "NotVerified"
-            );
-            member.roles.add(notVerifiedRole);
-
-            verifiedRole = member.guild.roles.cache.find((r) => r.name === "Verified");
-            member.roles.remove(verifiedRole.id);
-        }
-    }
+    checkGuildsVerifed()
 });
 
 client.on("guildMemberAdd", (member) => {
@@ -39,7 +64,7 @@ client.on("guildMemberAdd", (member) => {
 client.on("message", async (message) => {
     if (
         message.author.bot ||
-        message.content.charAt(0) != "?" ||
+        (message.content.charAt(0) != "?") ||
         message.content.length < 1
     ) {
         return;
@@ -49,16 +74,6 @@ client.on("message", async (message) => {
     const split = message.content.toLowerCase().substring(1).split(/[ ,]+/);
     const command = split[0]
     const params = split.splice(1)
-
-    //let role = message.guild.roles.find(r => r.name === "Verified");
-
-    // if (textContent == "verify") {
-    //     //console.log(message.guild.roles)
-    //     verifiedRole = message.guild.roles.cache.find((r) => r.name === "Verified");
-    //     message.member.roles.add(verifiedRole);
-    // }
-
-    //const command = textContent.split(" ")[0].split("?")[1];
 
     if (textContent) {
         console.log("\n-----------------------------------------------")
@@ -101,19 +116,41 @@ client.on("message", async (message) => {
                 console.log("\nAttempting verification...")
                 db.checkForMember(params[0], (isMember, memberName) => {
                     if (isMember) {
-                        console.log("User " + memberName + " verified! Adding roles & changing nickname...")
-                        VerifiedRole = message.guild.roles.cache.find(
-                            (r) => r.name === "Verified"
-                        );
-                        message.member.roles.add(VerifiedRole);
-                        message.member.setNickname(memberName);
-                        message.channel.send(memberName + " has been verified!");
+                        verify(message.member, memberName, message.channel);
                     } else {
                         console.log("User was not verified! Sending google form link...")
                         message.channel.send("Looks like you haven't signed up for the team! Join here: https://forms.gle/NnzoXiXPhzNrT3HX8")
                     }
                 })
                 break;
+            }
+            case "unverify": {
+                if (message.member.permissions.has("ADMINISTRATOR")) {
+                    if (params.length == 0) {
+                        unverify(message.member);
+                    }
+                    else if (params.length == 1) {
+                        const userID = params.substring(3, params.length - 1);
+
+                        message.guild.fetchMember(userID).then(member => {
+                            // Got the member!
+                            unverify(member, null);
+                        }).catch(() => {
+                            // Error, member not found
+                            message.channel.send('Could not find a member with the given ID or mention!');
+                        });
+
+                    }
+
+
+                }
+
+                break;
+            }
+            case "verifyguilds": {
+                if (message.member.permissions.has("ADMINISTRATOR")) {
+                    checkGuildsVerifed();
+                }
             }
             default: {
                 console.log(`\nUnknown command "${command}" ! Sending error message...`)
