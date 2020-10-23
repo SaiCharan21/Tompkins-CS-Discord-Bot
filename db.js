@@ -1,10 +1,11 @@
 const mysql = require('mysql2')
+require('dotenv').config()
 
 const connection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'tompkinscs'
+    host: process.env.HOST   || 'localhost',
+    user: process.env.USER   || 'root',
+    password: process.env.PW || '',
+    database: process.env.DB || 'tompkinscs'
 })
 
 const checkForMember =  (id, cb) => {

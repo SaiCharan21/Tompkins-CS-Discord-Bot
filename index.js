@@ -101,6 +101,15 @@ client.on("ready", () => {
 });
 
 client.on("guildMemberAdd", (member) => {
+    
+    member.send(
+        "Welcome to the Tompkins Computer Science Server!" + "\n" +
+        "To get access to the whole server you will need to fill out the form" + "\n"+
+        "https://forms.gle/NnzoXiXPhzNrT3HX8"+ "\n"+
+        "Once the form is filled out go to the #verify channel and type"+"\n"+
+        ""
+    );
+    
     // notVerified = member.guild.roles.find("name", "Not Verified");
     // member.addRole(notVerified);
 
@@ -231,6 +240,9 @@ client.on("message", async (message) => {
     }
 });
 
+const deleteMessage = (message) => {
+
+}
 
 const createRole = (guild) => {
     guild.roles.find("name", verifedName);
