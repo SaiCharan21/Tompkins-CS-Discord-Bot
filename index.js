@@ -39,10 +39,13 @@ const checkGuildsVerifed = () => {
 }
 
 const verify = (user, memberName, guild, sentChannel) => {
-    var channel = guild.channels.cache.get("name",defaultChannelName);
-    if(sentChannel){
-        channel = sentChannel;
-    }
+    var channel = sentChannel;
+
+    //console.log(channel);
+    // if(sentChannel){
+        // channel = sentChannel;
+    // }
+
 
     console.log("User " + memberName + " verified! Adding roles & changing nickname...")
     VerifiedRole = user.guild.roles.cache.find(
@@ -58,17 +61,17 @@ const verify = (user, memberName, guild, sentChannel) => {
     );
     user.roles.remove(NotVerifiedRole);
 
-    if (channel)
-        channel.send("```"+ memberName + " has been verified!" + "```");
+    // if (channel.name !== defaultChannelName)
+    //     channel.send("```"+ memberName + " has been verified!" + "```");
 };
 
 const unverify = (user, guild, sentChannel) => {
     
-    var channel = guild.channels.cache.get("name",defaultChannelName);
+    // var channel = guild.channels.cache.get("name",defaultChannelName);
 
-    if(sentChannel){
-        channel = sentChannel;
-    }
+    // if(sentChannel){
+    //     channel = sentChannel;
+    // }
 
     console.log("User " + user.user.username + " unverified! Setting roles...")
 
@@ -84,8 +87,8 @@ const unverify = (user, guild, sentChannel) => {
     user.roles.remove(VerifiedRole);
     user.roles.add(UnverifiedRole);
 
-    if (channel)    
-        channel.send("```Unverified " + user.user.username+"```");
+    // if (channel)    
+    //     channel.send("```Unverified " + user.user.username+"```");
 }
 
 const noPermsMessage = (channel) => {
@@ -103,13 +106,18 @@ client.on("ready", () => {
 client.on("guildMemberAdd", (member) => {
     
     member.send(
-        "Welcome to the Tompkins Computer Science Server!" + "\n" +
-        "To get access to the whole server you will need to fill out the form" + "\n"+
+        "**Welcome to the Tompkins Computer Science Server!**" + "\n" +
+        "To get access to the whole server you will need to fill out the following form:" + "\n"+
         "https://forms.gle/NnzoXiXPhzNrT3HX8"+ "\n"+
         "Once the form is filled out go to the #verify channel and type"+"\n"+
-        ""
+        "```?verify <studentid>```" + "\n" + 
+        "This will give you access to the whole server!!!"
     );
-    
+
+    UnverifiedRole = member.guild.roles.cache.find(
+        (r) => r.name === NotVerifedName
+    );
+    member.roles.add(UnverifiedRole);
     // notVerified = member.guild.roles.find("name", "Not Verified");
     // member.addRole(notVerified);
 
@@ -178,9 +186,10 @@ client.on("message", async (message) => {
                 break;
             }
             case "verify": {
+                message.delete({"timeout": 60000});
                 if (params.length != 1 || params[0].length != 8) {
                     console.log("\nVerification message has a syntax error!")
-                    message.channel.send(
+                    var botMsg = message.channel.send(
                         "The right format for this command is" +
                         "\n" +
                         "```" +
@@ -190,16 +199,20 @@ client.on("message", async (message) => {
                         "```" +
                         "Make sure your 8-character student ID was typed correctly"
                     );
+                    
+                    (await botMsg).delete({"timeout": 60000});
+
                     break;
                 }
 
                 console.log("\nAttempting verification...")
-                db.checkForMember(params[0], (isMember, memberName) => {
+                db.checkForMember(params[0], async (isMember, memberName) => {
                     if (isMember) {
                         verify(message.member, memberName, message.guild,message.channel);
                     } else {
-                        console.log("```User was not verified! Sending google form link...```")
-                        message.channel.send("```Looks like you haven't signed up for the team! Join here: https://forms.gle/NnzoXiXPhzNrT3HX8```")
+                        console.log("```User was not verified! Sending google form link...```");
+                        var botMsg = message.channel.send("```Looks like you haven't signed up for the team! Join here: https://forms.gle/NnzoXiXPhzNrT3HX8```");
+                        (await botMsg).delete({"timeout": 60000});
                     }
                 })
                 break;
@@ -240,9 +253,6 @@ client.on("message", async (message) => {
     }
 });
 
-const deleteMessage = (message) => {
-
-}
 
 const createRole = (guild) => {
     guild.roles.find("name", verifedName);
