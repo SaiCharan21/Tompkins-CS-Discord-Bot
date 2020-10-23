@@ -2,6 +2,13 @@ const Discord = require("discord.js");
 const config = require("./config.json");
 const db = require('./db');
 
+const allowedChannels = ["verify", "bot-commands"];
+
+const verifedName = "Members";
+const NotVerifedName = "NotVerified";
+
+const defaultChannelName = "verify";
+
 const client = new Discord.Client();
 
 const checkGuildsVerifed = () => {
@@ -10,48 +17,87 @@ const checkGuildsVerifed = () => {
         guild.members.cache.forEach(member => {
             // console.log(member.nickname || );
             db.checkByName(member.nickname, (isMember, memberName) => {
-                if (isMember) {
-                    verify(member, memberName);
-                } else {
-                    unverify(member);
-                }
+                VerifiedRole = guild.roles.cache.find(
+                    (r) => r.name === verifedName
+                );
+                
+                var isVerified = false;
+
+                member.roles.cache.forEach(m => {
+                    if(m.name === verifedName){
+                        isVerified = true;
+                    }
+                })
+                
+                if(isMember)
+                    verify(member, memberName, guild, null);
+                else if(!isVerified)
+                    unverify(member, guild, null);
             })
         })
     });
 }
 
-const verify = (user, memberName, channel) => {
+const verify = (user, memberName, guild, sentChannel) => {
+    var channel = guild.channels.cache.get("name",defaultChannelName);
+    if(sentChannel){
+        channel = sentChannel;
+    }
+
     console.log("User " + memberName + " verified! Adding roles & changing nickname...")
     VerifiedRole = user.guild.roles.cache.find(
-        (r) => r.name === "Verified"
+        (r) => r.name === verifedName
     );
     user.roles.add(VerifiedRole);
-    user.setNickname(memberName);
+    user.setNickname(memberName).catch(e => {
+        console.log(`Couldn't change nickname for ${memberName}, most likely because they are an administrator!`)
+    });
+
+    NotVerifiedRole = user.guild.roles.cache.find(
+        (r) => r.name === NotVerifedName
+    );
+    user.roles.remove(NotVerifiedRole);
+
     if (channel)
-        channel.send(memberName + " has been verified!");
+        channel.send("```"+ memberName + " has been verified!" + "```");
 };
 
-const unverify = (user, channel) => {
-    console.log("User unverified! Setting roles...")
+const unverify = (user, guild, sentChannel) => {
+    
+    var channel = guild.channels.cache.get("name",defaultChannelName);
+
+    if(sentChannel){
+        channel = sentChannel;
+    }
+
+    console.log("User " + user.user.username + " unverified! Setting roles...")
 
     VerifiedRole = user.guild.roles.cache.find(
-        (r) => r.name === "Verified"
+        (r) => r.name === verifedName
     );
     UnverifiedRole = user.guild.roles.cache.find(
-        (r) => r.name === "NotVerified"
+        (r) => r.name === NotVerifedName
     );
+
+        
+
     user.roles.remove(VerifiedRole);
     user.roles.add(UnverifiedRole);
 
-    if (channel)
-        channel.send("Unverified " + user.user.name);
+    if (channel)    
+        channel.send("```Unverified " + user.user.username+"```");
+}
+
+const noPermsMessage = (channel) => {
+    channel.send("```"+'You do not have the permissions to run this command!'+ "```");
 }
 
 client.on("ready", () => {
+
     console.log(`Bot has started....`);
     client.user.setActivity(`Computer Science`);
 
-    checkGuildsVerifed()
+    checkGuildsVerifed();
 });
 
 client.on("guildMemberAdd", (member) => {
@@ -70,6 +116,21 @@ client.on("message", async (message) => {
         return;
     }
 
+    let channel = message.channel;
+
+    let allowed = false;
+
+    for(var i=0; i < allowedChannels.length; i++){
+        if(channel.name == allowedChannels[i]){
+            allowed = true;
+            break;
+        }
+    }
+
+    if(!allowed){
+        return;
+    }
+
     const textContent = message.content
     const split = message.content.toLowerCase().substring(1).split(/[ ,]+/);
     const command = split[0]
@@ -83,18 +144,28 @@ client.on("message", async (message) => {
 
         switch (command) {
             case "restart": {
-                message.channel.send("Restarting...").then((m) => {
-                    client.destroy().then(() => {
-                        nop;
-                        client.login("token");
+                if (message.member.hasPermission("ADMINISTRATOR")) {
+                    message.channel.send("Restarting...").then((m) => {
+                        client.destroy().then(() => {
+                            nop;
+                            client.login("token");
+                        });
                     });
-                });
+                }
+                else{
+                    noPermsMessage(message.channel);
+                }
                 break;
             }
             case "shutdown": {
-                message.channel.send("Shutting down...").then((m) => {
-                    client.destroy();
-                });
+                if (message.member.hasPermission("ADMINISTRATOR")) {
+                    message.channel.send("```Shutting down...```").then((m) => {
+                        client.destroy();
+                    });
+                }
+                else{
+                    noPermsMessage(message.channel);
+                }
                 break;
             }
             case "verify": {
@@ -116,69 +187,60 @@ client.on("message", async (message) => {
                 console.log("\nAttempting verification...")
                 db.checkForMember(params[0], (isMember, memberName) => {
                     if (isMember) {
-                        verify(message.member, memberName, message.channel);
+                        verify(message.member, memberName, message.guild,message.channel);
                     } else {
-                        console.log("User was not verified! Sending google form link...")
-                        message.channel.send("Looks like you haven't signed up for the team! Join here: https://forms.gle/NnzoXiXPhzNrT3HX8")
+                        console.log("```User was not verified! Sending google form link...```")
+                        message.channel.send("```Looks like you haven't signed up for the team! Join here: https://forms.gle/NnzoXiXPhzNrT3HX8```")
                     }
                 })
                 break;
             }
             case "unverify": {
-                if (message.member.permissions.has("ADMINISTRATOR")) {
+                if (message.member.hasPermission("ADMINISTRATOR")) {
                     if (params.length == 0) {
-                        unverify(message.member);
+                        unverify(message.member, message.guild, message.channel);
                     }
                     else if (params.length == 1) {
-                        const userID = params.substring(3, params.length - 1);
-
-                        message.guild.fetchMember(userID).then(member => {
-                            // Got the member!
-                            unverify(member, null);
-                        }).catch(() => {
-                            // Error, member not found
-                            message.channel.send('Could not find a member with the given ID or mention!');
-                        });
-
+                        const userID = params[0].substring(3, params[0].length - 1);
+                        console.log(userID);
+                        target = message.guild.members.cache.get(userID);
+                        if(target)
+                            unverify(target, message.guild, message.channel);
+                        else 
+                            message.channel.send("```Member not found!```");
                     }
-
-
+                } else{
+                    noPermsMessage(message.channel);
                 }
 
                 break;
             }
             case "verifyguilds": {
-                if (message.member.permissions.has("ADMINISTRATOR")) {
+                if (message.member.hasPermission("ADMINISTRATOR")) {
                     checkGuildsVerifed();
+                }
+                else{
+                    noPermsMessage(message.channel);
                 }
             }
             default: {
-                console.log(`\nUnknown command "${command}" ! Sending error message...`)
-                message.channel.send(`"?${command}" is not a known command`)
+                console.log(`\n\`\`\`Unknown command "${command}" ! Sending error message...\`\`\``)
+                message.channel.send(`\`\`\`"?${command}" is not a known command\`\`\``)
             }
         }
     }
 });
 
-const authorized = (user) => {
-    authorized_users = [
-        "312736226375630849",
-        "324257645408288779",
-        "599078674892849175",
-        "613510923239555082",
-    ];
-    return authorized_users.includes(user);
-};
 
 const createRole = (guild) => {
-    guild.roles.find("name", "Verified");
-    guild.roles.find("name", "Not-Verified");
+    guild.roles.find("name", verifedName);
+    guild.roles.find("name", NotVerifedName);
 };
 
-const updateMember = (message) => { };
+const updateMember = (message) => {};
 
-const deleteMember = (message) => { };
+const deleteMember = (message) => {};
 
-const updateMembers = (guild) => { };
+const updateMembers = (guild) => {};
 
 client.login(config.token);
