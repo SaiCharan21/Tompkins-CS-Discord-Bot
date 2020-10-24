@@ -244,6 +244,7 @@ client.on("message", async (message) => {
                 else{
                     noPermsMessage(message.channel);
                 }
+                break;
             }
             case "invite": {
                 if(message.member.hasPermission("ADMINISTRATOR")) {
@@ -251,6 +252,7 @@ client.on("message", async (message) => {
                 } else {
                     noPermsMessage(message.channel)
                 }
+                break;
             }
             default: {
                 console.log(`\n\`\`\`Unknown command "${command}" ! Sending error message...\`\`\``)
