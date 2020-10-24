@@ -245,6 +245,13 @@ client.on("message", async (message) => {
                     noPermsMessage(message.channel);
                 }
             }
+            case "invite": {
+                if(message.member.hasPermission("ADMINISTRATOR")) {
+                    message.channel.createInvite({maxAge:0}).then(invite => message.channel.send(`Invite Link Generated: ${invite.url}`)).catch(console.error);
+                } else {
+                    noPermsMessage(message.channel)
+                }
+            }
             default: {
                 console.log(`\n\`\`\`Unknown command "${command}" ! Sending error message...\`\`\``)
                 message.channel.send(`\`\`\`"?${command}" is not a known command\`\`\``)

@@ -9,11 +9,13 @@ const connection = mysql.createConnection({
 })
 
 const checkForMember =  (id, cb) => {
+    console.log("ID: " + id)
     connection.query(
         "SELECT * FROM members WHERE student_id = ?",
         [id.toUpperCase()],
         async (err, res, field) => {
             if (err) throw err;
+            console.log(res)
             exists = (res[0] && res[0].student_id)
             cb(exists, res[0].name)
         }
