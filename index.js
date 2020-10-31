@@ -105,6 +105,11 @@ client.on("ready", () => {
 
 client.on("guildMemberAdd", (member) => {
     
+    console.log("\n-----------------------------------------------")
+    console.log(`\nNew Member in Guild!: ${member.nickname}`);
+
+    console.log("DM'ing user...")
+
     member.send(
         "**Welcome to the Tompkins Computer Science Server!**" + "\n" +
         "To get access to the whole server you will need to fill out the following form:" + "\n"+
@@ -113,6 +118,8 @@ client.on("guildMemberAdd", (member) => {
         "```?verify <studentid>```" + "\n" + 
         "This will give you access to the whole server!!!"
     );
+
+    console.log("DM'ed! Giving not verified role...")
 
     UnverifiedRole = member.guild.roles.cache.find(
         (r) => r.name === NotVerifedName
